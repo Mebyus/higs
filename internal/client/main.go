@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 	"unsafe"
+
+	"github.com/mebyus/higs/scf"
 )
 
 func relayData(client, backend Socket) {
@@ -27,7 +29,7 @@ func relayData(client, backend Socket) {
 
 func main() {
 	var config Config
-	err := LoadConfig(&config, "client.scf")
+	err := scf.Load(&config, "client.scf")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Secure Access</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 420px;
+            margin: 20px;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .logo {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .login-header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .login-header p {
+            color: #7f8c8d;
+            font-size: 1rem;
+        }
+        
+        .login-form {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            padding: 40px;
+            width: 100%;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .input-with-icon {
+            position: relative;
+        }
+        
+        .input-with-icon i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #7f8c8d;
+            font-size: 18px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background-color: #f9f9f9;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .remember-forgot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+        }
+        
+        .remember-me {
+            display: flex;
+            align-items: center;
+        }
+        
+        .remember-me input {
+            margin-right: 8px;
+        }
+        
+        .forgot-password {
+            color: #3498db;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        .forgot-password:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+        
+        .login-button {
+            width: 100%;
+            padding: 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .login-button:hover {
+            background-color: #2980b9;
+        }
+        
+        .login-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .login-button i {
+            margin-right: 10px;
+        }
+        
+        .login-footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .login-footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .error-message {
+            background-color: #ffeaea;
+            color: #e74c3c;
+            border: 1px solid #fadbd8;
+        }
+        
+        .success-message {
+            background-color: #e8f6ef;
+            color: #27ae60;
+            border: 1px solid #d4efdf;
+        }
+        
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 480px) {
+            .login-form {
+                padding: 30px 25px;
+            }
+            
+            .login-container {
+                margin: 15px;
+            }
+            
+            .remember-forgot {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .forgot-password {
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h1>Secure Access Portal</h1>
+            <p>Please sign in to continue to your account</p>
+        </div>
+        
+        <div class="message" id="message"></div>
+        
+        <form class="login-form" id="loginForm">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-key"></i>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                </div>
+            </div>
+            
+            <div class="remember-forgot">
+                <div class="remember-me">
+                    <input type="checkbox" id="remember" name="remember">
+                    <label for="remember">Remember me</label>
+                </div>
+                <a href="#" class="forgot-password">Forgot password?</a>
+            </div>
+            
+            <button type="submit" class="login-button" id="loginButton">
+                <div class="loading-spinner" id="spinner"></div>
+                <i class="fas fa-sign-in-alt"></i>
+                <span id="buttonText">Sign In</span>
+            </button>
+        </form>
+        
+        <div class="login-footer">
+            <p>Don't have an account? <a href="#">Contact administrator</a></p>
+            <p>&copy; <span id="currentYear"></span> Secure Access Portal. All rights reserved.</p>
+        </div>
+    </div>
+
+    <script>
+        // Set current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        
+        // Form submission handler
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('remember').checked;
+            
+            // Show loading state
+            const loginButton = document.getElementById('loginButton');
+            const buttonText = document.getElementById('buttonText');
+            const spinner = document.getElementById('spinner');
+            
+            loginButton.disabled = true;
+            buttonText.textContent = 'Authenticating...';
+            spinner.style.display = 'block';
+            
+            // Hide any previous messages
+            hideMessage();
+            
+            // Simple client-side validation
+            if (!validateEmail(email)) {
+                showMessage('Please enter a valid email address', 'error');
+                resetButton();
+                return;
+            }
+            
+            if (password.length < 6) {
+                showMessage('Password must be at least 6 characters', 'error');
+                resetButton();
+                return;
+            }
+            
+            // Prepare data for API call
+            const loginData = {
+                email: email,
+                password: password,
+                remember: rememberMe
+            };
+            
+            // This is where you'll make the API call to your backend
+            // I'm providing a template that you can modify when you have your backend ready
+            
+            // For demonstration, simulate API call with timeout
+            setTimeout(() => {
+                // This is a mock response - replace with actual API call
+                simulateApiCall(loginData);
+            }, 1500);
+        });
+        
+        // Function to simulate API call
+        function simulateApiCall(loginData) {
+            // This is a mock function - REPLACE THIS WITH YOUR ACTUAL API CALL
+            console.log('API call with data:', JSON.stringify(loginData));
+            
+            // Mock API response - replace with actual API call
+            // Example of what your API call might look like:
+            /*
+            fetch('https://your-backend-api.com/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(loginData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Handle successful login
+                if (data.success) {
+                    showMessage('Login successful! Redirecting...', 'success');
+                    // Redirect user or store token as needed
+                    // window.location.href = '/dashboard';
+                } else {
+                    showMessage(data.message || 'Login failed', 'error');
+                    resetButton();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Network error. Please try again.', 'error');
+                resetButton();
+            });
+            */
+            
+            // For this demo, we'll simulate a random success/failure
+            const isSuccess = Math.random() > 0.3;
+            
+            if (isSuccess) {
+                showMessage('Login successful! Redirecting...', 'success');
+                // In a real scenario, you would redirect or set user session here
+                // window.location.href = '/dashboard';
+            } else {
+                showMessage('Invalid credentials. Please try again.', 'error');
+                resetButton();
+            }
+        }
+        
+        // Utility functions
+        function validateEmail(email) {
+            const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            return re.test(String(email).toLowerCase());
+        }
+        
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = 'message ' + type + '-message';
+            messageEl.style.display = 'block';
+        }
+        
+        function hideMessage() {
+            document.getElementById('message').style.display = 'none';
+        }
+        
+        function resetButton() {
+            const loginButton = document.getElementById('loginButton');
+            const buttonText = document.getElementById('buttonText');
+            const spinner = document.getElementById('spinner');
+            
+            loginButton.disabled = false;
+            buttonText.textContent = 'Sign In';
+            spinner.style.display = 'none';
+        }
+        
+        // Forgot password link
+        document.querySelector('.forgot-password').addEventListener('click', function(e) {
+            e.preventDefault();
+            showMessage('Password reset functionality would be implemented here.', 'success');
+        });
+    </script>
+</body>
+</html>

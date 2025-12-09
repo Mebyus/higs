@@ -9,6 +9,7 @@ import (
 
 	"github.com/mebyus/higs/internal/client"
 	"github.com/mebyus/higs/proxy"
+	"github.com/mebyus/higs/scf"
 )
 
 func main() {
@@ -21,7 +22,7 @@ func main() {
 
 func StartClient(configPath string) error {
 	var config client.Config
-	err := client.LoadConfig(&config, configPath)
+	err := scf.Load(&config, configPath)
 	if err != nil {
 		return err
 	}

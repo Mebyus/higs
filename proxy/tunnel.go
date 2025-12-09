@@ -163,7 +163,7 @@ func (t *Tunnel) Hello(g *rand.ChaCha8, cid ConnID, ip net.IP, port int) (*Conn,
 	}
 
 	t.addConn(&c)
-	err := wsok.Encode(t.wb, &frame)
+	err := wsok.Encode(t.wb, &frame) // TODO: fix Socket usage race
 	if err != nil {
 		t.dropConn(cid)
 		return nil, err
