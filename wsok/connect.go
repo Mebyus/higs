@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 )
 
@@ -206,4 +207,12 @@ func CheckConnectResponse(b []byte, key string) error {
 	}
 
 	return nil
+}
+
+func HasUpgradeHeaders(headers http.Header) bool {
+	if headers.Get("Upgrade") != "websocket" {
+		return false
+	}
+
+	return strings.Contains(headers.Get("Connection"), "Upgrade")
 }

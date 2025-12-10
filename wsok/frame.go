@@ -9,6 +9,8 @@ import (
 	"math/rand/v2"
 )
 
+const debug = false
+
 type OpCode uint8
 
 const (
@@ -70,15 +72,16 @@ func Decode(r io.Reader, f *Frame) error {
 	fin := (buf[0] >> 7) == 1
 	ext := (buf[0] >> 4) & 0x7
 	op := OpCode(buf[0] & 0xf)
-	fmt.Printf("header[1]: 0x%02X (%08b)\n", buf[1], buf[1])
 	useMask := (buf[1] >> 7) == 1
 	sizeBits := buf[1] & 0x7f
 
-	fmt.Printf("fin: %v\n", fin)
-	fmt.Printf("ext bits: %03b\n", ext)
-	fmt.Printf("op: 0x%x\n", op)
-	fmt.Printf("use mask: %v\n", useMask)
-	fmt.Printf("size bits: %b\n", sizeBits)
+	if debug {
+		fmt.Printf("fin: %v\n", fin)
+		fmt.Printf("ext bits: %03b\n", ext)
+		fmt.Printf("op: 0x%x\n", op)
+		fmt.Printf("use mask: %v\n", useMask)
+		fmt.Printf("size bits: %b\n", sizeBits)
+	}
 
 	// TODO: check extension bits
 	// TODO: check opcode value
@@ -104,12 +107,16 @@ func Decode(r io.Reader, f *Frame) error {
 		}
 	}
 
-	fmt.Printf("size: %d\n", size)
+	if debug {
+		fmt.Printf("size: %d\n", size)
+	}
 
 	var mask [4]byte
 	if useMask {
 		copy(mask[:], buf[pos:headerExtraSize])
-		fmt.Printf("mask: 0x%04x\n", mask)
+		if debug {
+			fmt.Printf("mask: 0x%04x\n", mask)
+		}
 	}
 
 	var data []byte
@@ -127,8 +134,6 @@ func Decode(r io.Reader, f *Frame) error {
 			data[i] ^= mask[i&0b11]
 		}
 	}
-
-	fmt.Printf("payload: %s\n", data)
 
 	f.Data = data
 	f.Op = op

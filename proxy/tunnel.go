@@ -184,9 +184,9 @@ func (t *Tunnel) addConn(c *Conn) {
 }
 
 func (t *Tunnel) getConn(cid ConnID) *Conn {
-	t.mu.Lock()
+	t.mu.RLock()
 	c := t.conns[cid]
-	t.mu.Unlock()
+	t.mu.RUnlock()
 
 	return c
 }
