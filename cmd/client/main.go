@@ -1,13 +1,11 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"math/rand/v2"
-	"net"
 	"os"
 
 	"github.com/mebyus/higs/internal/client"
+	"github.com/mebyus/higs/proc"
 	"github.com/mebyus/higs/proxy"
 	"github.com/mebyus/higs/scf"
 )
@@ -27,21 +25,14 @@ func StartClient(configPath string) error {
 		return err
 	}
 
-	tunnel, err := proxy.Connect(context.TODO(), config.ProxyURL, config.AuthToken)
+	ctx := proc.NewContext()
+
+	tunnel, err := proxy.Connect(ctx, config.ProxyURL, config.AuthToken)
 	if err != nil {
 		return err
 	}
 
-	go tunnel.Serve(context.TODO())
+	go tunnel.Serve(ctx)
 
-	g := rand.NewChaCha8([32]byte{0, 1, 2, 3})
-
-	conn, err := tunnel.Hello(g, proxy.NewConnID(g), net.IPv4(8, 8, 8, 8), 443)
-	if err != nil {
-		return err
-	}
-
-	_ = conn
-
-	return nil
+	return client.RunLocalServer(ctx, &config, tunnel)
 }

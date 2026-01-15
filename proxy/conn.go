@@ -56,7 +56,7 @@ func (c *Conn) Read(b []byte) (int, error) {
 		return 0, err
 	}
 
-	switch packet.typ {
+	switch packet.Type {
 	case PacketHello:
 		return 0, fmt.Errorf("incoming hello packet in client connection")
 	case PacketClose:
@@ -64,18 +64,18 @@ func (c *Conn) Read(b []byte) (int, error) {
 	case PacketData:
 		// proceed further
 	default:
-		return 0, fmt.Errorf("unexpected packet type (=%d)", packet.typ)
+		return 0, fmt.Errorf("unexpected packet type (=%d)", packet.Type)
 	}
 
-	c.received += uint64(len(packet.data))
+	c.received += uint64(len(packet.Data))
 
-	n := copy(b, packet.data)
-	if n == len(packet.data) {
+	n := copy(b, packet.Data)
+	if n == len(packet.Data) {
 		return n, nil
 	}
 
 	// save leftover bytes to incoming data buffer
-	c.inbuf.Write(packet.data[n:])
+	c.inbuf.Write(packet.Data[n:])
 
 	return 0, nil
 }

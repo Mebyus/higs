@@ -144,7 +144,11 @@ func (t *Tunnel) readNextFrame() error {
 
 func (t *Tunnel) Hello(g *rand.ChaCha8, cid ConnID, ip net.IP, port int) (*Conn, error) {
 	var packet Packet
-	packet.PutHelloTCP(g, cid, ip, port)
+	packet.PutHello(g, cid, &Hello{
+		IP:      ip,
+		Port:    uint16(port),
+		Network: NetworkTCP,
+	})
 
 	frame := wsok.Frame{
 		Data:    Encode(&packet),

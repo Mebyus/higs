@@ -2,11 +2,9 @@ package proxy
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/rand/v2"
-	"net"
 )
 
 // ConnID connection id.
@@ -41,10 +39,10 @@ func (t PacketType) Valid() error {
 
 // Packet carries a single packet of connection data between proxy client and server.
 type Packet struct {
-	data []byte
+	Data []byte
 
 	// connection id
-	cid ConnID
+	CID ConnID
 
 	// junk padding at packet start
 	junk1 [8]byte
@@ -55,48 +53,26 @@ type Packet struct {
 	// reserved
 	rsv [3]byte
 
-	typ PacketType
+	Type PacketType
 }
 
-const helloDataLength = 4 + 4 + // ip + junk
-	1 + 1 + 2 // junk + protocol (tcp/udp) + port
-
-func encodeHelloData(g *rand.ChaCha8, ip net.IP, port int) []byte {
-	b := make([]byte, helloDataLength)
-	junk := g.Uint64()
-
-	b[0] = ip[0]
-	b[1] = byte(junk & 0xFF)
-	b[2] = ip[1]
-	b[3] = byte((junk >> 8) & 0xFF)
-	b[4] = ip[2]
-	b[5] = byte((junk >> 16) & 0xFF)
-	b[6] = ip[3]
-	b[7] = byte((junk >> 24) & 0xFF)
-
-	b[8] = byte((junk >> 32) & 0xFF)
-	b[9] = 0 // tcp
-
-	binary.LittleEndian.PutUint16(b[10:], uint16(port))
-	return b
-}
-
-func (p *Packet) PutHelloTCP(g *rand.ChaCha8, cid ConnID, ip net.IP, port int) {
+func (p *Packet) PutHello(g *rand.ChaCha8, cid ConnID, h *Hello) {
+	ip := h.IP
 	a := ip.To4()
 	if a == nil {
 		panic(fmt.Sprintf("unexpected ip address: %v", ip))
 	}
 
-	p.cid = cid
-	p.data = encodeHelloData(g, ip, port)
-	p.typ = PacketHello
+	p.CID = cid
+	p.Data = EncodeHello(g, h)
+	p.Type = PacketHello
 	p.PutJunk(g)
 }
 
 func (p *Packet) PutData(g *rand.ChaCha8, cid ConnID, data []byte) {
-	p.cid = cid
-	p.data = data
-	p.typ = PacketData
+	p.CID = cid
+	p.Data = data
+	p.Type = PacketData
 	p.PutJunk(g)
 }
 
@@ -124,11 +100,11 @@ func PeekPacketType(b []byte) (PacketType, error) {
 
 func Encode(p *Packet) []byte {
 	// resulting length of encoded packet
-	var n = minPacketLength + len(p.data)
+	var n = minPacketLength + len(p.Data)
 
 	b := make([]byte, n)
 
-	if p.typ == PacketData {
+	if p.Type == PacketData {
 		b[0] = '{'
 		b[1] = '"'
 
@@ -143,10 +119,10 @@ func Encode(p *Packet) []byte {
 	}
 
 	copy(b[2:10], p.junk1[:])
-	copy(b[10:26], p.cid[:])
+	copy(b[10:26], p.CID[:])
 	copy(b[26:29], p.rsv[:])
-	b[29] = uint8(p.typ) + '0'
-	copy(b[30:n-10], p.data)
+	b[29] = uint8(p.Type) + '0'
+	copy(b[30:n-10], p.Data)
 	copy(b[n-10:], p.junk2[:])
 
 	return b
@@ -167,11 +143,11 @@ func Decode(b []byte, p *Packet) error {
 
 	n := len(b)
 	copy(p.junk1[:], b[2:10])
-	copy(p.cid[:], b[10:26])
+	copy(p.CID[:], b[10:26])
 	copy(p.rsv[:], b[26:29])
-	p.typ = typ
+	p.Type = typ
 	copy(p.junk2[:], b[n-10:n-2])
-	p.data = bytes.Clone(b[30 : n-10])
+	p.Data = bytes.Clone(b[30 : n-10])
 	return nil
 }
 

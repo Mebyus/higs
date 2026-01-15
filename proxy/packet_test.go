@@ -39,9 +39,9 @@ func TestDecode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			packet := Packet{
-				data: []byte(tt.data),
-				typ:  tt.typ,
-				cid:  NewConnID(g),
+				Data: []byte(tt.data),
+				Type: tt.typ,
+				CID:  NewConnID(g),
 			}
 			packet.PutJunk(g)
 			b := Encode(&packet)
@@ -50,8 +50,8 @@ func TestDecode(t *testing.T) {
 				t.Errorf("PeekConnID() error = %v", err)
 				return
 			}
-			if cid != packet.cid {
-				t.Errorf("PeekConnID() got = %s, want %s", cid, packet.cid)
+			if cid != packet.CID {
+				t.Errorf("PeekConnID() got = %s, want %s", cid, packet.CID)
 				return
 			}
 

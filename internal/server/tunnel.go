@@ -81,20 +81,52 @@ func (t *Tunnel) readNextFrame() error {
 		return err
 	}
 
-	// TODO: dispatch packet based on its type
-
-	cid, err := proxy.PeekConnID(frame.Data)
+	var packet proxy.Packet
+	err = proxy.Decode(frame.Data, &packet)
 	if err != nil {
 		return err
 	}
 
+	cid := packet.CID
+	typ := packet.Type
 	c := t.getConn(cid)
-	if c == nil {
-		return fmt.Errorf("packet from unknown connection (cid=%s)", cid)
-	}
 
-	// c.in <- frame.Data
-	return nil
+	switch typ {
+	case proxy.PacketHello:
+		if c != nil {
+			return fmt.Errorf("hello packet from already existing connection (cid=%s)", cid)
+		}
+
+		var hello proxy.Hello
+		err = proxy.DecodeHello(packet.Data, &hello)
+		if err != nil {
+			return err
+		}
+
+		c = &Conn{
+			cid:   cid,
+			in:    make(chan *proxy.Packet, 64),
+			lg:    t.lg,
+			done:  make(chan struct{}),
+			hello: hello,
+		}
+		t.addConn(c)
+		go serveConn(c)
+		return nil
+	case proxy.PacketData:
+		if c == nil {
+			return fmt.Errorf("packet from unknown connection (cid=%s)", cid)
+		}
+		c.in <- &packet
+		return nil
+	case proxy.PacketClose:
+		if c == nil {
+			return fmt.Errorf("packet from unknown connection (cid=%s)", cid)
+		}
+		return nil
+	default:
+		return fmt.Errorf("unexpected packet type (=%d)", typ)
+	}
 }
 
 func (t *Tunnel) addConn(c *Conn) {

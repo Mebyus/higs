@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/mebyus/higs/proxy"
 )
 
 type Server struct {
@@ -19,20 +21,23 @@ type Server struct {
 
 	// next accepted connection id
 	next uint64
+
+	tunnel *proxy.Tunnel
 }
 
-func (s *Server) Init(address string) error {
+func (s *Server) Init(address string, tunnel *proxy.Tunnel) error {
 	address = strings.TrimSpace(address)
 	if address == "" {
 		panic("empty listen address")
 	}
 
-	err := loadRouter(&s.router, "routes.txt")
+	err := loadRoutesFromFile(&s.router, "routes.txt")
 	if err != nil {
 		return fmt.Errorf("load routes from file: %v", err)
 	}
 
 	s.address = address
+	s.tunnel = tunnel
 	return nil
 }
 
@@ -82,17 +87,30 @@ func (s *Server) handleConnection(c *Connection, done <-chan struct{}) {
 	defer c.in.Close()
 
 	clientAddress := c.in.RemoteAddr()
-	ip, port, procName, err := getOriginalDestination(c.in)
+	ap, procName, err := getOriginalDestination(c.in)
 	if err != nil {
 		fmt.Printf("get original destination %s: %v\n", clientAddress, err)
 		return
 	}
 
-	address := net.JoinHostPort(ip.String(), strconv.FormatInt(int64(port), 10))
-	fmt.Printf("accepted connection (id=%d) from %s (%s) to %s\n", c.id, procName, clientAddress, address)
+	fmt.Printf("accepted connection (id=%d) from %s (%s) to %s\n", c.id, procName, clientAddress, ap)
 
 	var out Socket
-	if s.router.ShouldProxy(ip) {
+
+	act := s.router.Lookup(ap.Addr())
+	switch act {
+	case ActionDirect, ActionAuto:
+		destConn, err := net.DialTCP("tcp", nil, &net.TCPAddr{
+			IP:   net.IP(ap.Addr().AsSlice()),
+			Port: int(ap.Port()),
+		})
+		if err != nil {
+			fmt.Printf("direct destination %s dial: %v\n", ap, err)
+			return
+		}
+		fmt.Printf("new direct connection (id=%d) from %v to %s established\n", c.id, clientAddress, ap)
+		out = destConn
+	case ActionProxy:
 		var f FileConn
 		err := f.Init(filepath.Join("tcp", strconv.FormatUint(c.id, 10)))
 		if err != nil {
@@ -101,18 +119,12 @@ func (s *Server) handleConnection(c *Connection, done <-chan struct{}) {
 		}
 		fmt.Printf("new file dump for connection (id=%d) created\n", c.id)
 		out = &f
-	} else {
-		destConn, err := net.DialTCP("tcp", nil, &net.TCPAddr{
-			IP:   ip,
-			Port: port,
-		})
-		if err != nil {
-			fmt.Printf("direct destination %s dial: %v\n", address, err)
-			return
-		}
-		fmt.Printf("new direct connection (id=%d) from %v to %s established\n", c.id, clientAddress, address)
-		out = destConn
+	case ActionBlock:
+		return
+	default:
+		panic(fmt.Sprintf("unexpected action (=%d)", act))
 	}
+
 	c.out = out
 	defer out.Close()
 
