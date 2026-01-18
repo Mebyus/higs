@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func loadRoutesFromFile(r *Router, path string) error {
+func LoadRoutesFromFile(r *Router, path string) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return err

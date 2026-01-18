@@ -1,33 +1,74 @@
 package client
 
 import (
+	"bytes"
+	"context"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/netip"
+	"os"
+	"os/exec"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 	"unsafe"
 )
 
-func setupNAT(tcpPort uint16) error {
+type LocalNAT struct{}
+
+func (n *LocalNAT) Setup(tcpPort, udpPort uint16) error {
+	err := n.addRule("tcp", 443, tcpPort)
+	if err != nil {
+		return fmt.Errorf("add tls redirect rule: %v", err)
+	}
+	err = n.addRule("udp", 53, udpPort)
+	if err != nil {
+		return fmt.Errorf("add dns redirect rule: %v", err)
+	}
+
+	return nil
+}
+
+func (n *LocalNAT) Disable() error {
+	return execProc(time.Second, "iptables", "-t", "nat", "-F")
+}
+
+func (n *LocalNAT) addRule(network string, destPort, redirectPort uint16) error {
+	switch network {
+	case "tcp", "udp":
+		// continue execution
+	default:
+		panic(fmt.Sprintf("unexpected \"%s\" network", network))
+	}
+
 	return execProc(time.Second, "iptables", "-t", "nat",
-		"-A", "OUTPUT", "-p", "tcp",
+		"-A", "OUTPUT", "-p", network,
 		"-m", "owner", "!", "--uid-owner", "root",
-		"--dport", "443",
-		"-j", "REDIRECT", "--to-port", strconv.FormatUint(uint64(tcpPort), 10),
+		"--dport", strconv.FormatUint(uint64(destPort), 10),
+		"-j", "REDIRECT", "--to-port", strconv.FormatUint(uint64(redirectPort), 10),
 	)
 }
 
-func cleanupNAT() {
-	err := disableNAT()
-	if err != nil {
-		fmt.Printf("Disable NAT: %v\n", err)
-	}
-}
+func execProc(timeout time.Duration, path string, args ...string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
-func disableNAT() error {
-	return execProc(time.Second, "iptables", "-t", "nat", "-F")
+	c := exec.CommandContext(ctx, path, args...)
+	var out bytes.Buffer
+	c.Stdout = &out
+
+	var errout strings.Builder
+	c.Stderr = &errout
+
+	err := c.Run()
+	io.Copy(os.Stdout, &out)
+	if err != nil {
+		return errors.New(errout.String())
+	}
+	return nil
 }
 
 func getOriginalDestination(conn net.Conn) (netip.AddrPort, string, error) {

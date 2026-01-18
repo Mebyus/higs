@@ -3,16 +3,21 @@ package client
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
+	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
+	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/mebyus/higs/proxy"
 )
 
 type Server struct {
-	router Router
+	resolver *Resolver
+	router   *Router
 
 	listener net.Listener
 
@@ -23,22 +28,77 @@ type Server struct {
 	next uint64
 
 	tunnel *proxy.Tunnel
+
+	lg *zap.Logger
 }
 
-func (s *Server) Init(address string, tunnel *proxy.Tunnel) error {
-	address = strings.TrimSpace(address)
-	if address == "" {
-		panic("empty listen address")
-	}
+func relayData(client, backend Socket) {
+	go func() {
+		io.Copy(backend, client)
+		backend.Close()
+	}()
+	io.Copy(client, backend)
+}
 
-	err := loadRoutesFromFile(&s.router, "routes.txt")
+func RunLocalServer(ctx context.Context, lg *zap.Logger, config *Config, tunnel *proxy.Tunnel, resolver *Resolver, router *Router) error {
+	lg = lg.Named("local")
+
+	port := config.LocalTCPPort
+	address := fmt.Sprintf(":%d", port)
+
+	var server Server
+	server.address = address
+	server.tunnel = tunnel
+	server.lg = lg
+	server.resolver = resolver
+	server.router = router
+
+	go func() {
+		err := server.ListenUDP(ctx, config.LocalUDPPort)
+		if err != nil {
+			lg.Error("listen udp", zap.Error(err))
+		}
+	}()
+
+	err := server.ListenAndHandleConnections(ctx)
 	if err != nil {
-		return fmt.Errorf("load routes from file: %v", err)
+		return fmt.Errorf("listen on %d port: %v\n", port, err)
 	}
-
-	s.address = address
-	s.tunnel = tunnel
 	return nil
+}
+
+func getRemotePort(conn net.Conn) int {
+	_, s, _ := net.SplitHostPort(conn.RemoteAddr().String())
+	port, _ := strconv.ParseInt(s, 10, 64)
+	return int(port)
+}
+
+func (s *Server) ListenUDP(ctx context.Context, port uint16) error {
+	lg := s.lg.Named("udp")
+
+	listener, err := net.ListenPacket("udp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return err
+	}
+	defer listener.Close()
+
+	done := ctx.Done()
+	for {
+		_, ok := <-done
+		if ok {
+			return nil
+		}
+
+		var buf [1 << 12]byte
+		n, addr, err := listener.ReadFrom(buf[:])
+		if err != nil {
+			lg.Error("read data", zap.Error(err))
+			continue
+		}
+
+		data := buf[:n]
+		os.WriteFile(fmt.Sprintf(".out/%s-%d.dump", addr, time.Now().UnixMicro()), data, 0o655)
+	}
 }
 
 func (s *Server) ListenAndHandleConnections(ctx context.Context) error {

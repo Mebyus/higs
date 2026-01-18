@@ -1,4 +1,7 @@
 /higs
+/client
+/server
+
 /.out/
 
 *.scf

@@ -42,7 +42,7 @@ func Connect(ctx context.Context, proxyURL, token string) (*Tunnel, error) {
 		Port: int(port),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("connect to proxy server: %v", err)
+		return nil, err
 	}
 
 	/* Send connect request to proxy server */
