@@ -29,12 +29,14 @@ func SetupLogger(path string, level string) (*zap.Logger, io.Closer, error) {
 		sink = os.Stdout
 	}
 
-	var encoder zapcore.Encoder
+	var config zapcore.EncoderConfig
 	if path != "" {
-		encoder = zapcore.NewConsoleEncoder(zap.NewProductionEncoderConfig())
+		config = zap.NewProductionEncoderConfig()
+		config.EncodeTime = zapcore.ISO8601TimeEncoder
 	} else {
-		encoder = zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
+		config = zap.NewDevelopmentEncoderConfig()
 	}
+	encoder := zapcore.NewConsoleEncoder(config)
 	lg := zap.New(zapcore.NewCore(encoder, sink, lvl))
 
 	return lg, closer, nil
