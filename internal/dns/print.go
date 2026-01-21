@@ -11,7 +11,13 @@ func printHeader(h *header) {
 	fmt.Printf("id:   0x%04X\n", h.id)
 	fmt.Println()
 
+	fmt.Printf("resp:   %d\n", intbool(h.resp))
 	fmt.Printf("opcode: %d\n", h.opcode)
+	fmt.Printf("auth:   %d\n", intbool(h.auth))
+	fmt.Printf("trunc:  %d\n", intbool(h.trunc))
+	fmt.Printf("recd:   %d\n", intbool(h.recd))
+	fmt.Printf("reca:   %d\n", intbool(h.reca))
+	fmt.Printf("rcode:  %d\n", h.rcode)
 
 	fmt.Println()
 	fmt.Printf("quests:  %d\n", h.quests)
@@ -34,4 +40,11 @@ func printRecord(r *Record) {
 	fmt.Printf("class: %d\n", r.Class)
 	fmt.Printf("ttl:   %d\n", r.TTL)
 	fmt.Printf("data:  %v\n", r.Data)
+}
+
+func intbool(v bool) uint8 {
+	if v {
+		return 1
+	}
+	return 0
 }

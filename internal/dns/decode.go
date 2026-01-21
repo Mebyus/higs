@@ -13,12 +13,10 @@ var (
 func Decode(m *Message, data []byte) error {
 	const debug = true
 
-	if len(data) < 12 {
-		return ErrNoHeader
-	}
+	dec := decoder{buf: data}
 
 	var h header
-	err := decodeHeader(&h, data[:12])
+	err := dec.header(&h)
 	if err != nil {
 		return err
 	}
@@ -26,10 +24,6 @@ func Decode(m *Message, data []byte) error {
 		printHeader(&h)
 	}
 
-	dec := decoder{
-		buf: data,
-		pos: 12,
-	}
 	quests, err := dec.quests(h.quests)
 	if err != nil {
 		return err
@@ -52,6 +46,7 @@ func Decode(m *Message, data []byte) error {
 	m.Quests = quests
 	m.Answers = answers
 	m.ID = h.id
+	m.Opcode = h.opcode
 	return nil
 }
 
@@ -82,6 +77,32 @@ var (
 	ErrEmptyName     = errors.New("empty name")
 	ErrNotEnoughData = errors.New("not enough data")
 )
+
+func (d *decoder) header(h *header) error {
+	if d.len() < 12 {
+		return ErrNoHeader
+	}
+
+	h.id = d.u16()
+
+	b := d.u8()
+	h.resp = b>>7 != 0
+	h.opcode = Opcode((b >> 3) & 0b1111)
+	h.auth = b&0b100 != 0
+	h.trunc = b&0b10 != 0
+	h.recd = b&0b1 != 0
+
+	b = d.u8()
+	h.reca = b>>7 != 0
+	h.rcode = Rcode(b & 0b1111)
+
+	h.quests = d.u16()
+	h.answers = d.u16()
+	h.servers = d.u16()
+	h.records = d.u16()
+
+	return nil
+}
 
 func (d *decoder) quests(num uint16) ([]Quest, error) {
 	if num == 0 {
@@ -145,7 +166,7 @@ func (d *decoder) answers(num uint16) ([]Answer, error) {
 }
 
 func (d *decoder) answer(a *Answer) error {
-	return nil
+	return d.record(a)
 }
 
 func (d *decoder) records(num uint16) ([]Record, error) {
@@ -298,23 +319,4 @@ func (d *decoder) data(size int) []byte {
 // Returns number of remaining bytes available.
 func (d *decoder) len() int {
 	return len(d.buf) - d.pos
-}
-
-func decodeHeader(h *header, data []byte) error {
-	h.id = uint16(data[0])<<8 | uint16(data[1])
-	h.resp = (data[2] & 0x80) != 0
-	h.opcode = Opcode((data[2] << 1) >> 4)
-	h.auth = (data[2] & 0x4) != 0
-
-	h.TC = uint16((data[2] << 6) >> 7)
-	h.RD = uint16((data[2] << 7) >> 7)
-	h.RA = uint16(data[3] >> 7)
-	h.Z = uint16((data[3] << 1) >> 5)
-
-	h.quests = uint16(data[4])<<8 | uint16(data[5])
-	h.answers = uint16(data[6])<<8 | uint16(data[7])
-	h.servers = uint16(data[8])<<8 | uint16(data[9])
-	h.records = uint16(data[10])<<8 | uint16(data[11])
-
-	return nil
 }
