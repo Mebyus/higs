@@ -24,10 +24,10 @@ func (n *LocalNAT) Setup(tcpPort, udpPort uint16) error {
 	if err != nil {
 		return fmt.Errorf("add tls redirect rule: %v", err)
 	}
-	err = n.addRule("udp", 53, udpPort)
-	if err != nil {
-		return fmt.Errorf("add dns redirect rule: %v", err)
-	}
+	// err = n.addRule("udp", 53, udpPort)
+	// if err != nil {
+	// 	return fmt.Errorf("add dns redirect rule: %v", err)
+	// }
 
 	return nil
 }
@@ -93,9 +93,6 @@ func getOriginalDestination(conn net.Conn) (netip.AddrPort, string, error) {
 	var addr syscall.RawSockaddrInet4
 	addrLen := uint32(unsafe.Sizeof(addr))
 
-	// SO_ORIGINAL_DST constant
-	const SO_ORIGINAL_DST = 80
-
 	_, _, errno := syscall.Syscall6(
 		syscall.SYS_GETSOCKOPT,
 		uintptr(fd),
@@ -123,3 +120,7 @@ func getOriginalDestination(conn net.Conn) (netip.AddrPort, string, error) {
 func swapEndianUint16(v uint16) uint16 {
 	return (v >> 8) | (v << 8)
 }
+
+const (
+	SO_ORIGINAL_DST = 80
+)

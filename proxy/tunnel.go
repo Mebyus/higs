@@ -108,7 +108,7 @@ func (t *Tunnel) serveOut() {
 			if err == io.EOF {
 				return
 			}
-			fmt.Printf("[error] read frame: %v\n", err)
+			fmt.Printf("[error] read frame: (%T) %v\n", err, err)
 		}
 	}
 }

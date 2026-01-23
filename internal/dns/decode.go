@@ -1,4 +1,4 @@
-package main
+package dns
 
 import (
 	"errors"
@@ -94,6 +94,7 @@ func (d *decoder) header(h *header) error {
 
 	b = d.u8()
 	h.reca = b>>7 != 0
+	h.rezv = (b >> 4) & 0b111
 	h.rcode = Rcode(b & 0b1111)
 
 	h.quests = d.u16()

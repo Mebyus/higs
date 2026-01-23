@@ -1,4 +1,4 @@
-package main
+package dns
 
 import (
 	"slices"
@@ -21,7 +21,7 @@ func Encode(m *Message, buf []byte) []byte {
 		rcode:  m.Rcode,
 		auth:   false,
 		trunc:  false,
-		recd:   false,
+		recd:   true,
 		reca:   false,
 
 		quests:  uint16(len(m.Quests)),

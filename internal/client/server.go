@@ -8,16 +8,17 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 
 	"go.uber.org/zap"
 
+	"github.com/mebyus/higs/internal/dns"
 	"github.com/mebyus/higs/proxy"
 )
 
 type Server struct {
 	resolver *Resolver
 	router   *Router
+	dns      *dns.Proxy
 
 	listener net.Listener
 
@@ -52,13 +53,14 @@ func RunLocalServer(ctx context.Context, lg *zap.Logger, config *Config, tunnel 
 	server.lg = lg
 	server.resolver = resolver
 	server.router = router
+	server.dns = dns.NewProxy(resolver)
 
-	go func() {
-		err := server.ListenUDP(ctx, config.LocalUDPPort)
-		if err != nil {
-			lg.Error("listen udp", zap.Error(err))
-		}
-	}()
+	// go func() {
+	// 	err := server.HandleDNS(ctx, config.LocalUDPPort)
+	// 	if err != nil {
+	// 		lg.Error("listen udp", zap.Error(err))
+	// 	}
+	// }()
 
 	err := server.ListenAndHandleConnections(ctx)
 	if err != nil {
@@ -73,8 +75,8 @@ func getRemotePort(conn net.Conn) int {
 	return int(port)
 }
 
-func (s *Server) ListenUDP(ctx context.Context, port uint16) error {
-	lg := s.lg.Named("udp")
+func (s *Server) HandleDNS(ctx context.Context, port uint16) error {
+	lg := s.lg.Named("dns")
 
 	listener, err := net.ListenPacket("udp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -84,20 +86,27 @@ func (s *Server) ListenUDP(ctx context.Context, port uint16) error {
 
 	done := ctx.Done()
 	for {
-		_, ok := <-done
-		if ok {
-			return nil
-		}
-
 		var buf [1 << 12]byte
 		n, addr, err := listener.ReadFrom(buf[:])
 		if err != nil {
-			lg.Error("read data", zap.Error(err))
-			continue
+			lg.Error("read request", zap.Error(err))
+
+			select {
+			case <-done:
+				return nil
+			default:
+				continue
+			}
 		}
 
 		data := buf[:n]
-		os.WriteFile(fmt.Sprintf(".out/%s-%d.dump", addr, time.Now().UnixMicro()), data, 0o655)
+		resp := s.dns.Handle(data)
+		os.WriteFile(".out/resp2.dump", resp, 0o644)
+		_, err = listener.WriteTo(resp, addr)
+		if err != nil {
+			lg.Error("write response", zap.String("addr", addr.String()), zap.Error(err))
+			continue
+		}
 	}
 }
 

@@ -1,7 +1,8 @@
-package main
+package dns
 
 import (
 	"errors"
+	"fmt"
 	"net/netip"
 	"time"
 )
@@ -56,6 +57,8 @@ func (p *Proxy) Handle(request []byte) []byte {
 var ErrTooManyQuest = errors.New("request contains too many questions")
 
 func (p *Proxy) handle(resp *Message, req *Message) error {
+	const debug = true
+
 	if len(req.Quests) == 0 {
 		return ErrNoQuest
 	}
@@ -66,6 +69,7 @@ func (p *Proxy) handle(resp *Message, req *Message) error {
 	}
 	resp.ID = req.ID
 	resp.Opcode = req.Opcode
+	resp.addEmptySec()
 
 	// flag for each question - was it resolved or not
 	var resolved [maxQuest]bool
@@ -85,9 +89,14 @@ func (p *Proxy) handle(resp *Message, req *Message) error {
 			continue
 		}
 
+		resp.addQuest(q.Name)
 		resp.addAnswers(q.Name, list, ttl)
 		rc += 1
 		resolved[i] = true
+
+		if debug {
+			fmt.Printf("name \"%s\" found: %v\n", q.Name, list)
+		}
 	}
 
 	if rc >= len(req.Quests) {

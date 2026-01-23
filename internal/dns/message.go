@@ -1,4 +1,4 @@
-package main
+package dns
 
 import (
 	"net/netip"
@@ -44,6 +44,8 @@ type header struct {
 	// message. This value is set by the originator of a query
 	// and copied into the response.
 	opcode Opcode
+
+	rezv uint8
 
 	// Response code. This 4 bit field is set as part of
 	// responses.
@@ -155,6 +157,25 @@ type Record struct {
 
 	Type  Type
 	Class Class
+}
+
+func (m *Message) addQuest(name string) {
+	m.Quests = append(m.Quests, Quest{
+		Name:  name,
+		Type:  TypeAddr,
+		Class: Internet,
+	})
+}
+
+func (m *Message) addEmptySec() {
+	m.addRecord(Record{
+		Type:  41,
+		Class: 512,
+	})
+}
+
+func (m *Message) addRecord(r Record) {
+	m.Records = append(m.Records, r)
 }
 
 func (m *Message) addAnswer(name string, ip netip.Addr, ttl uint32) {

@@ -5,6 +5,8 @@ import (
 	"net"
 	"net/netip"
 	"os"
+
+	"github.com/mebyus/higs/internal/dns"
 )
 
 func main() {
@@ -21,10 +23,10 @@ func run() error {
 		return err
 	}
 
-	var msg Message
-	err = Decode(&msg, data)
+	var msg dns.Message
+	err = dns.Decode(&msg, data)
 
-	// return nil
+	return nil
 
 	ip, err := netip.ParseAddr("8.8.8.8")
 	if err != nil {
@@ -52,7 +54,7 @@ func run() error {
 	}
 	fmt.Printf("received %d bytes from %s\n", n, addr)
 
-	os.WriteFile(".out/resp.dump", buf[:n], 0o655)
+	os.WriteFile(".out/resp3.dump", buf[:n], 0o644)
 
 	return err
 }

@@ -1,4 +1,4 @@
-package main
+package dns
 
 import "fmt"
 
@@ -17,6 +17,7 @@ func printHeader(h *header) {
 	fmt.Printf("trunc:  %d\n", intbool(h.trunc))
 	fmt.Printf("recd:   %d\n", intbool(h.recd))
 	fmt.Printf("reca:   %d\n", intbool(h.reca))
+	fmt.Printf("rezv:   %d\n", h.rezv)
 	fmt.Printf("rcode:  %d\n", h.rcode)
 
 	fmt.Println()
